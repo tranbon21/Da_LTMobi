@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "885864277840",
+    "firebase_url": "https://service-ec2e6-default-rtdb.firebaseio.com",
+    "project_id": "service-ec2e6",
+    "storage_bucket": "service-ec2e6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:885864277840:android:0fdeab4730d2f5096cae55",
+        "android_client_info": {
+          "package_name": "com.example.da_booking_hotel"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCMOTa6e7AKjCo9EcdopeoMrq90j832Frs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
