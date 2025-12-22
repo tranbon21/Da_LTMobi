@@ -8,6 +8,25 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:885864277840:android:dabec18f7272f0c46cae55",
+        "android_client_info": {
+          "package_name": "com.android.application"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCMOTa6e7AKjCo9EcdopeoMrq90j832Frs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:885864277840:android:0fdeab4730d2f5096cae55",
         "android_client_info": {
           "package_name": "com.example.da_booking_hotel"
