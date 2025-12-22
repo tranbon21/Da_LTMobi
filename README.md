@@ -212,8 +212,8 @@ git push origin feature/auth-bon  # hoặc branch của bạn
 
 ### Development
 - [ ] Bôn: Hoàn thành authentication & profile
-- [ ] A: Hoàn thành hotels
-- [ ] B: Hoàn thành tours
+- [ ] Trí: Hoàn thành hotels
+- [ ] Hậu: Hoàn thành tours
 - [ ] Bằng: Hoàn thành trang chủ
 
 ### Integration
