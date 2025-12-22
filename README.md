@@ -4,9 +4,9 @@
 Ứng dụng đặt phòng khách sạn và tour du lịch được phát triển bằng Flutter và Firebase.
 
 ## 👥 Thành Viên Nhóm
-- **Bôn** (Trần Thị Kiều Oanh) - Leader - Authentication & Profile
-- **Thành viên A** - Hotels & Hotel Details
-- **Thành viên B** - Tours & Tour Details  
+- **Bôn** - Leader - Authentication & Profile
+- **Trí** - Hotels & Hotel Details
+- **Hậu** - Tours & Tour Details  
 - **Bằng** - Trang Chủ (Home Screen)
 
 ## 🎯 Phân Công Công Việc
@@ -32,7 +32,7 @@
 
 ---
 
-### 👤 Thành viên A - Hotels
+### 👤 Trí - Hotels
 **Branch:** `feature/hotels-member-a`
 
 **Files:**
@@ -49,7 +49,7 @@
 
 ---
 
-### 👤 Thành viên B - Tours
+### 👤  Hậu - Tours
 **Branch:** `feature/tours-member-b`
 
 **Files:**
@@ -110,10 +110,10 @@ làm xong thì merge vào branch test r báo cho leader kiểm tra kh được t
 # Bôn
 git checkout -b feature/auth-bon
 
-# Thành viên A
+# Trí
 git checkout -b feature/hotels-member-a
 
-# Thành viên B
+# Hậu
 git checkout -b feature/tours-member-b
 
 # Bằng
@@ -196,7 +196,7 @@ git push origin feature/auth-bon  # hoặc branch của bạn
 
 ## 📞 Liên Hệ
 
-- **Leader:** Bôn (Trần Thị Kiều Oanh)
+- **Leader:** Bôn
 - **Group Chat:** [Link group chat]
 
 ---
