@@ -1,179 +1,171 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter_rating_bar/flutter_rating_bar.dart';
-import '../models/tour_model.dart';
-import '../utils/constants.dart';
 import 'package:intl/intl.dart';
+import '../models/tour_model.dart';
 
 class TourCard extends StatelessWidget {
   final Tour tour;
   final VoidCallback onTap;
 
-  const TourCard({super.key, required this.tour, required this.onTap});
+  const TourCard({
+    super.key,
+    required this.tour,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
-    final dateFormat = DateFormat('dd/MM/yyyy');
+    final dateFormat = DateFormat('dd/MM');
 
     return Card(
-      clipBehavior: Clip.antiAlias,
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Tour image
-            SizedBox(
-              height: AppSizes.imageCard,
-              width: double.infinity,
-              child: tour.imageUrls.isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: tour.imageUrls.first,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        color: AppColors.border,
-                        child: const Center(child: CircularProgressIndicator()),
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        color: AppColors.border,
-                        child: const Icon(
-                          Icons.tour,
-                          size: AppSizes.iconXL,
-                          color: AppColors.textHint,
-                        ),
-                      ),
-                    )
-                  : Container(
-                      color: AppColors.border,
-                      child: const Icon(
-                        Icons.tour,
-                        size: AppSizes.iconXL,
-                        color: AppColors.textHint,
-                      ),
+            // Ảnh tour (dùng ảnh local)
+            ClipRRect(
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+              child: Image.asset(
+                tour.imageUrls.isNotEmpty
+                    ? tour.imageUrls.first
+                    : 'assets/images/tour_default.jpg',
+                height: 120,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 120,
+                    color: Colors.grey[300],
+                    child: const Icon(
+                      Icons.tour,
+                      size: 40,
+                      color: Colors.grey,
                     ),
+                  );
+                },
+              ),
             ),
 
             Padding(
-              padding: const EdgeInsets.all(AppSizes.paddingM),
+              padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Tour name
+                  // Tên tour
                   Text(
                     tour.name,
-                    style: Theme.of(context).textTheme.titleLarge,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: AppSizes.paddingXS),
+                  const SizedBox(height: 4),
 
-                  // Destination
+                  // Địa điểm
                   Row(
                     children: [
                       const Icon(
                         Icons.location_on,
-                        size: AppSizes.iconS,
-                        color: AppColors.textSecondary,
+                        size: 14,
+                        color: Colors.grey,
                       ),
-                      const SizedBox(width: AppSizes.paddingXS),
+                      const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          '${tour.destination}, ${tour.country}',
-                          style: Theme.of(context).textTheme.bodyMedium,
+                          tour.destination,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: AppSizes.paddingS),
+                  const SizedBox(height: 6),
 
-                  // Duration and dates
+                  // Thời gian
                   Row(
                     children: [
                       const Icon(
-                        Icons.schedule,
-                        size: AppSizes.iconS,
-                        color: AppColors.textSecondary,
+                        Icons.calendar_today,
+                        size: 14,
+                        color: Colors.grey,
                       ),
-                      const SizedBox(width: AppSizes.paddingXS),
+                      const SizedBox(width: 4),
                       Text(
-                        '${tour.duration} ngày',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      const SizedBox(width: AppSizes.paddingM),
-                      Text(
-                        '${dateFormat.format(tour.startDate)} - ${dateFormat.format(tour.endDate)}',
-                        style: Theme.of(context).textTheme.bodySmall,
+                        '${tour.duration} ngày • ${dateFormat.format(tour.startDate)}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: AppSizes.paddingS),
+                  const SizedBox(height: 6),
 
-                  // Rating
+                  // Đánh giá
                   Row(
                     children: [
-                      RatingBarIndicator(
-                        rating: tour.rating,
-                        itemBuilder: (context, index) =>
-                            const Icon(Icons.star, color: AppColors.warning),
-                        itemCount: 5,
-                        itemSize: AppSizes.iconS,
-                        direction: Axis.horizontal,
-                      ),
-                      const SizedBox(width: AppSizes.paddingS),
+                      _buildStarRating(tour.rating),
+                      const SizedBox(width: 6),
                       Text(
-                        '${tour.rating} (${tour.reviewCount} đánh giá)',
-                        style: Theme.of(context).textTheme.bodySmall,
+                        '${tour.rating} (${tour.reviewCount})',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: AppSizes.paddingS),
+                  const SizedBox(height: 10),
 
-                  // Price and availability
+                  // Giá và chỗ trống
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            currencyFormat.format(tour.price),
-                            style: Theme.of(context).textTheme.titleLarge
-                                ?.copyWith(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
-                          Text(
-                            'mỗi người',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
+                      Text(
+                        currencyFormat.format(tour.price),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: AppSizes.paddingM,
-                          vertical: AppSizes.paddingS,
+                          horizontal: 10,
+                          vertical: 4,
                         ),
                         decoration: BoxDecoration(
                           color: tour.isAvailable
-                              ? AppColors.success.withOpacity(0.1)
-                              : AppColors.error.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(AppSizes.radiusM),
+                              ? Colors.green[50]
+                              : Colors.red[50],
+                          borderRadius: BorderRadius.circular(16),
                         ),
                         child: Text(
                           tour.isAvailable
-                              ? '${tour.maxParticipants - tour.currentParticipants} chỗ trống'
+                              ? '${tour.maxParticipants - tour.currentParticipants} chỗ'
                               : 'Hết chỗ',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: tour.isAvailable
-                                    ? AppColors.success
-                                    : AppColors.error,
-                                fontWeight: FontWeight.w600,
-                              ),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: tour.isAvailable
+                                ? Colors.green[800]
+                                : Colors.red[800],
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
@@ -184,6 +176,20 @@ class TourCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildStarRating(double rating) {
+    return Row(
+      children: List.generate(5, (index) {
+        return Icon(
+          Icons.star,
+          size: 14,
+          color: index < rating.floor()
+              ? Colors.orange
+              : (index < rating ? Colors.orange : Colors.grey[300]),
+        );
+      }),
     );
   }
 }
