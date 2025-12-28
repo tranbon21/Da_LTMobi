@@ -77,6 +77,20 @@ class AuthService {
     }
   }
 
+  Future<User?> signInAnonymouslyIfNeeded() async {
+    if (_auth.currentUser != null) {
+      return _auth.currentUser;
+    }
+
+    try {
+      UserCredential result = await _auth.signInAnonymously();
+      return result.user;
+    } catch (e) {
+      print('Error signing in anonymously: $e');
+      rethrow;
+    }
+  }
+
   // Reset password
   Future<void> resetPassword(String email) async {
     try {
