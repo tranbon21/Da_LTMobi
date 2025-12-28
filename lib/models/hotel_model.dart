@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Hotel {
   final String id;
   final String name;
@@ -32,25 +34,40 @@ class Hotel {
   });
 
   factory Hotel.fromMap(Map<String, dynamic> map, String id) {
+    return Hotel.fromJson(map, id: id);
+  }
+
+  factory Hotel.fromJson(Map<String, dynamic> json, {String? id}) {
+    final priceValue = json['pricePerNight'];
+    final ratingValue = json['rating'];
+    final latitudeValue = json['latitude'];
+    final longitudeValue = json['longitude'];
+
     return Hotel(
-      id: id,
-      name: map['name'] ?? '',
-      description: map['description'] ?? '',
-      address: map['address'] ?? '',
-      city: map['city'] ?? '',
-      country: map['country'] ?? '',
-      pricePerNight: (map['pricePerNight'] ?? 0).toDouble(),
-      rating: (map['rating'] ?? 0).toDouble(),
-      reviewCount: map['reviewCount'] ?? 0,
-      imageUrls: List<String>.from(map['imageUrls'] ?? []),
-      amenities: List<String>.from(map['amenities'] ?? []),
-      latitude: (map['latitude'] ?? 0).toDouble(),
-      longitude: (map['longitude'] ?? 0).toDouble(),
-      availableRooms: map['availableRooms'] ?? 0,
+      id: id ?? json['id'] ?? '',
+      name: json['name'] ?? '',
+      description: json['description'] ?? '',
+      address: json['address'] ?? '',
+      city: json['city'] ?? '',
+      country: json['country'] ?? '',
+      pricePerNight: (priceValue is num ? priceValue : 0).toDouble(),
+      rating: (ratingValue is num ? ratingValue : 0).toDouble(),
+      reviewCount: json['reviewCount'] ?? 0,
+      imageUrls: List<String>.from(json['imageUrls'] ?? []),
+      amenities: List<String>.from(json['amenities'] ?? []),
+      latitude: (latitudeValue is num ? latitudeValue : 0).toDouble(),
+      longitude: (longitudeValue is num ? longitudeValue : 0).toDouble(),
+      availableRooms: json['availableRooms'] ?? 0,
     );
   }
 
-  Map<String, dynamic> toMap() {
+  factory Hotel.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
+    return Hotel.fromJson(doc.data() ?? {}, id: doc.id);
+  }
+
+  Map<String, dynamic> toMap() => toJson();
+
+  Map<String, dynamic> toJson() {
     return {
       'name': name,
       'description': description,
@@ -67,6 +84,8 @@ class Hotel {
       'availableRooms': availableRooms,
     };
   }
+
+  Map<String, dynamic> toFirestore() => toJson();
 
   Hotel copyWith({
     String? id,
