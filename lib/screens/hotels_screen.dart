@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+// Local imports
 import '../models/hotel_model.dart';
 import '../services/hotel_service.dart';
 import '../utils/constants.dart';
 import '../widgets/hotel_card.dart';
+import '../widgets/hotel_card_shimmer.dart'; // Shimmer loading skeleton
 import 'hotel_detail_screen.dart';
 
 class HotelsScreen extends StatelessWidget {
@@ -104,90 +106,6 @@ class _HotelsListViewState extends State<_HotelsListView> {
     super.dispose();
   }
 
-  void _openFilterSheet(BuildContext context) {
-    final viewModel = context.read<_HotelsViewModel>();
-    final maxPriceController = TextEditingController(
-      text: viewModel.maxPrice?.toStringAsFixed(0) ?? '',
-    );
-    bool sortByRating = viewModel.sortByRating;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: AppSizes.paddingL,
-                right: AppSizes.paddingL,
-                top: AppSizes.paddingL,
-                bottom: MediaQuery.of(context).viewInsets.bottom +
-                    AppSizes.paddingL,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    AppStrings.filter,
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: AppSizes.paddingM),
-                  TextField(
-                    controller: maxPriceController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Giá tối đa (VND)',
-                      prefixIcon: Icon(Icons.price_change),
-                    ),
-                  ),
-                  const SizedBox(height: AppSizes.paddingM),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Ưu tiên xếp hạng cao'),
-                    value: sortByRating,
-                    onChanged: (value) {
-                      setState(() => sortByRating = value);
-                    },
-                  ),
-                  const SizedBox(height: AppSizes.paddingM),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            viewModel.clearFilters();
-                            Navigator.of(context).pop();
-                          },
-                          child: const Text('Xóa lọc'),
-                        ),
-                      ),
-                      const SizedBox(width: AppSizes.paddingM),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            final rawValue = maxPriceController.text.trim();
-                            final maxPrice = rawValue.isEmpty
-                                ? null
-                                : double.tryParse(rawValue);
-                            viewModel.updateMaxPrice(maxPrice);
-                            viewModel.updateSortByRating(sortByRating);
-                            Navigator.of(context).pop();
-                          },
-                          child: const Text('Áp dụng'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    ).whenComplete(maxPriceController.dispose);
-  }
 
   void _clearSearch(_HotelsViewModel viewModel) {
     _searchController.clear();
@@ -201,12 +119,6 @@ class _HotelsListViewState extends State<_HotelsListView> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(AppStrings.hotels),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: () => _openFilterSheet(context),
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -232,8 +144,18 @@ class _HotelsListViewState extends State<_HotelsListView> {
             child: StreamBuilder<List<Hotel>>(
               stream: viewModel.hotelsStream,
               builder: (context, snapshot) {
+                // Hiển thị shimmer loading skeleton khi đang tải
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSizes.paddingM,
+                      vertical: AppSizes.paddingS,
+                    ),
+                    itemCount: 5, // Hiển thị 5 skeleton cards
+                    itemBuilder: (context, index) {
+                      return const HotelCardShimmer();
+                    },
+                  );
                 }
 
                 if (snapshot.hasError) {
