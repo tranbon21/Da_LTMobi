@@ -124,3 +124,22 @@ class AppStrings {
   static const String success = 'Thành công';
   static const String noData = 'Không có dữ liệu';
 }
+
+/// Class chứa các duration constants cho animations và delays
+class AppDurations {
+  // Dialog & Navigation
+  static const dialogCloseDelay = Duration(milliseconds: 200);
+  static const navigationDelay = Duration(milliseconds: 100);
+  
+  // Carousel
+  static const carouselAutoPlayInterval = Duration(seconds: 4);
+  static const carouselAnimationDuration = Duration(milliseconds: 800);
+  
+  // Toast
+  static const toastShort = Duration(seconds: 2);
+  static const toastLong = Duration(seconds: 4);
+  
+  // Loading
+  static const loadingMinDisplay = Duration(milliseconds: 500);
+  static const loadingTimeout = Duration(seconds: 30);
+}
