@@ -98,7 +98,6 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
   }
 
   /// Hiển thị dialog chọn ngày trả phòng.
-  /// 
   /// Sử dụng HotelDatePickerDialog widget với TableCalendar.
   /// Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 ngày.
   Future<void> _selectCheckOutDate() async {
