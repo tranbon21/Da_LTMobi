@@ -225,7 +225,7 @@ class _TourDetailScreenState extends State<TourDetailScreen> {
                         ],
                       ),
                     );
-                  }).toList(),
+                  }),
                   const SizedBox(height: AppSizes.paddingL),
 
                   // Booking section
