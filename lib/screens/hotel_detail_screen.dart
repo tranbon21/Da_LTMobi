@@ -2,17 +2,18 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 // Package imports - organized by category
 import 'package:cached_network_image/cached_network_image.dart'; // Hiển thị ảnh từ network với cache
-import 'package:carousel_slider/carousel_slider.dart';           // Slider ảnh khách sạn đẹp
+import 'package:carousel_slider/carousel_slider.dart'; // Slider ảnh khách sạn đẹp
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_easyloading/flutter_easyloading.dart';    // Loading indicators đẹp
+import 'package:flutter_easyloading/flutter_easyloading.dart'; // Loading indicators đẹp
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
-import 'package:fluttertoast/fluttertoast.dart';                  // Toast notifications
+import 'package:fluttertoast/fluttertoast.dart'; // Toast notifications
 import 'package:intl/intl.dart';
-import 'package:table_calendar/table_calendar.dart';              // Calendar picker cho date
-import 'package:url_launcher/url_launcher.dart';                  // Mở Google Maps và URLs
+import 'package:table_calendar/table_calendar.dart'; // Calendar picker cho date
+import 'package:url_launcher/url_launcher.dart'; // Mở Google Maps và URLs
 // Local imports - Services & Models
 import '../models/booking_model.dart';
 import '../models/hotel_model.dart';
+import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../utils/constants.dart';
 // Local imports - Widgets
@@ -38,20 +39,19 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
   int _adultCount = 2;
   int _childCount = 0;
   bool _isBooking = false;
-  
+
   // Controllers cho form inputs
   final TextEditingController _contactNameController = TextEditingController();
-  final TextEditingController _contactPhoneController =
-      TextEditingController();
+  final TextEditingController _contactPhoneController = TextEditingController();
   final TextEditingController _specialRequestController =
       TextEditingController();
-  
+
   // Services
   final FirestoreService _firestoreService = FirestoreService();
-  
+
   // Carousel slider state
   int _currentImageIndex = 0; // Vị trí hiện tại của slider ảnh
-  
+
   // Constants cho pricing
   static const int _baseAdultsPerRoom = 2;
   static const int _baseChildrenPerRoom = 1;
@@ -67,10 +67,8 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
     super.dispose();
   }
 
-
-
   /// Hiển thị dialog chọn ngày nhận phòng.
-  /// 
+  ///
   /// Sử dụng HotelDatePickerDialog widget với TableCalendar.
   /// Ngày nhận phòng phải từ hôm nay trở đi.
   Future<void> _selectCheckInDate() async {
@@ -134,12 +132,14 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
   Future<void> _openGoogleMaps() async {
     try {
       // Tạo URL Google Maps với địa chỉ khách sạn
-      final address = '${widget.hotel.address}, ${widget.hotel.city}, ${widget.hotel.country}';
+      final address =
+          '${widget.hotel.address}, ${widget.hotel.city}, ${widget.hotel.country}';
       final encodedAddress = Uri.encodeComponent(address);
-      final googleMapsUrl = 'https://www.google.com/maps/search/?api=1&query=$encodedAddress';
-      
+      final googleMapsUrl =
+          'https://www.google.com/maps/search/?api=1&query=$encodedAddress';
+
       final uri = Uri.parse(googleMapsUrl);
-      
+
       // Launch trực tiếp, không cần check canLaunchUrl
       // (canLaunchUrl thường trả về false trên Android ngay cả khi URL có thể mở được)
       await launchUrl(
@@ -160,6 +160,65 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
     }
   }
 
+  /// Hiển thị dialog yêu cầu đăng nhập cho user khách
+  ///
+  /// Dialog này xuất hiện khi user đang ở chế độ khách (guest mode)
+  /// cố gắng đặt phòng. Dialog có 2 nút:
+  /// - "Đăng nhập": Chuyển đến màn hình đăng nhập
+  /// - "Hủy": Đóng dialog
+  void _showGuestLoginRequiredDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          // Icon cảnh báo
+          icon: const Icon(
+            Icons.warning_amber_rounded,
+            color: Colors.orange,
+            size: 48,
+          ),
+          // Tiêu đề dialog
+          title: const Text('Yêu cầu đăng nhập', textAlign: TextAlign.center),
+          // Nội dung thông báo
+          content: const Text(
+            'Bạn cần đăng nhập bằng tài khoản để có thể đặt phòng. '
+            'Vui lòng đăng ký hoặc đăng nhập để tiếp tục.',
+            textAlign: TextAlign.center,
+          ),
+          // Các nút hành động
+          actions: [
+            // Nút "Hủy" - đóng dialog
+            TextButton(
+              onPressed: () {
+                // Đóng dialog
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Hủy'),
+            ),
+            // Nút "Đăng nhập" - chuyển đến màn hình đăng nhập
+            ElevatedButton(
+              onPressed: () async {
+                // Đóng dialog trước
+                Navigator.of(dialogContext).pop();
+
+                // Đăng xuất khỏi chế độ khách
+                await AuthService().signOut();
+
+                // AuthGate sẽ tự động chuyển sang LoginScreen
+                // khi phát hiện user đã đăng xuất
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Đăng nhập'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _bookHotel() async {
     // Kiểm tra thông tin đầu vào
     if (_checkInDate == null || _checkOutDate == null) {
@@ -170,16 +229,16 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
     }
 
     if (widget.hotel.availableRooms <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Khách sạn đã hết phòng')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Khách sạn đã hết phòng')));
       return;
     }
 
     if (_adultCount < 1) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cần ít nhất 1 người lớn')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Cần ít nhất 1 người lớn')));
       return;
     }
 
@@ -201,11 +260,23 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
       return;
     }
 
+    // Lấy userId của user hiện tại
     final userId = FirebaseAuth.instance.currentUser?.uid;
+
+    // Kiểm tra xem user đã đăng nhập chưa
     if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Vui lòng đăng nhập để đặt phòng')),
       );
+      return;
+    }
+
+    // Kiểm tra xem user có phải là khách (guest) không
+    // Khách không được phép đặt phòng, phải đăng nhập bằng tài khoản thật
+    final authService = AuthService();
+    if (authService.isGuestUser()) {
+      // Hiển thị dialog yêu cầu đăng nhập
+      _showGuestLoginRequiredDialog();
       return;
     }
 
@@ -237,7 +308,7 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
     required String contactPhone,
   }) {
     final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
-    
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -264,13 +335,19 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                 const SizedBox(height: AppSizes.paddingM),
                 _buildInfoRow('Số phòng:', '$_roomCount phòng'),
                 _buildInfoRow('Số đêm:', '$nights đêm'),
-                _buildInfoRow('Khách:', '$_adultCount người lớn, $_childCount trẻ em'),
+                _buildInfoRow(
+                  'Khách:',
+                  '$_adultCount người lớn, $_childCount trẻ em',
+                ),
                 const SizedBox(height: AppSizes.paddingS),
                 const Divider(),
                 const SizedBox(height: AppSizes.paddingS),
                 _buildInfoRow('Giá phòng:', currencyFormat.format(basePrice)),
                 if (extraGuestFee > 0)
-                  _buildInfoRow('Phụ thu khách:', currencyFormat.format(extraGuestFee)),
+                  _buildInfoRow(
+                    'Phụ thu khách:',
+                    currencyFormat.format(extraGuestFee),
+                  ),
                 const SizedBox(height: AppSizes.paddingS),
                 const Divider(thickness: 2),
                 const SizedBox(height: AppSizes.paddingS),
@@ -414,7 +491,7 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
     } catch (e) {
       // Dismiss loading nếu có lỗi
       EasyLoading.dismiss();
-      
+
       if (mounted) {
         // Hiển thị toast lỗi thay vì SnackBar
         Fluttertoast.showToast(
@@ -430,7 +507,7 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
   }
 
   /// Hiển thị dialog đặt phòng thành công.
-  /// 
+  ///
   /// Sử dụng BookingSuccessDialog widget.
   /// Sau khi bấm Hoàn tất sẽ quay về trang danh sách khách sạn.
   void _showSuccessDialog() {
@@ -439,7 +516,8 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
       barrierDismissible: false,
       builder: (dialogContext) => BookingSuccessDialog(
         hotelName: widget.hotel.name,
-        screenContext: context, // Truyền context screen để navigation về danh sách
+        screenContext:
+            context, // Truyền context screen để navigation về danh sách
       ),
     );
   }
@@ -476,8 +554,8 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
     if (nights == 0) {
       return 0;
     }
-    final extraFee = (_extraAdults * _extraAdultFee) +
-        (_extraChildren * _extraChildFee);
+    final extraFee =
+        (_extraAdults * _extraAdultFee) + (_extraChildren * _extraChildFee);
     return extraFee * nights;
   }
 
@@ -492,8 +570,6 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
       _adultCount = 1;
     }
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -530,9 +606,11 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                             height: 300,
                             viewportFraction: 1.0,
                             enlargeCenterPage: false,
-                            autoPlay: true,                    // Tự động chạy
-                            autoPlayInterval: AppDurations.carouselAutoPlayInterval,
-                            autoPlayAnimationDuration: AppDurations.carouselAnimationDuration,
+                            autoPlay: true, // Tự động chạy
+                            autoPlayInterval:
+                                AppDurations.carouselAutoPlayInterval,
+                            autoPlayAnimationDuration:
+                                AppDurations.carouselAnimationDuration,
                             autoPlayCurve: Curves.fastOutSlowIn,
                             onPageChanged: (index, reason) {
                               // Cập nhật vị trí hiện tại của slider
@@ -558,19 +636,19 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                                   ),
                                   errorWidget: (context, url, error) =>
                                       Container(
-                                    color: AppColors.border,
-                                    child: const Icon(
-                                      Icons.broken_image,
-                                      size: AppSizes.iconXL * 2,
-                                      color: AppColors.textHint,
-                                    ),
-                                  ),
+                                        color: AppColors.border,
+                                        child: const Icon(
+                                          Icons.broken_image,
+                                          size: AppSizes.iconXL * 2,
+                                          color: AppColors.textHint,
+                                        ),
+                                      ),
                                 );
                               },
                             );
                           }).toList(),
                         ),
-                        
+
                         // Label số ảnh (giữ lại, bỏ indicators)
                         Positioned(
                           top: 50,
@@ -639,7 +717,7 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                     ],
                   ),
                   const SizedBox(height: AppSizes.paddingS),
-                  
+
                   // Nút xem bản đồ
                   OutlinedButton.icon(
                     onPressed: _openGoogleMaps,
@@ -647,7 +725,9 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                     label: const Text('Xem bản đồ'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.primary,
-                      side: BorderSide(color: AppColors.primary.withOpacity(0.5)),
+                      side: BorderSide(
+                        color: AppColors.primary.withOpacity(0.5),
+                      ),
                       padding: const EdgeInsets.symmetric(
                         horizontal: AppSizes.paddingM,
                         vertical: AppSizes.paddingS,
@@ -865,21 +945,18 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                         const SizedBox(height: AppSizes.paddingXS),
                         Text(
                           '- Giá tính theo số phòng và số đêm',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.textPrimary,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: AppColors.textPrimary),
                         ),
                         Text(
                           '- Mỗi phòng gồm $_baseAdultsPerRoom người lớn và $_baseChildrenPerRoom trẻ em miễn phí',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.textPrimary,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: AppColors.textPrimary),
                         ),
                         Text(
                           '- Vượt quá sẽ tính phụ thu theo đêm',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.textPrimary,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: AppColors.textPrimary),
                         ),
                       ],
                     ),

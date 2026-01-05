@@ -90,7 +90,10 @@ class FirestoreService {
     });
   }
 
-  Future<void> updateHotelAvailableRooms(String hotelId, int roomsBooked) async {
+  Future<void> updateHotelAvailableRooms(
+    String hotelId,
+    int roomsBooked,
+  ) async {
     try {
       await _db.collection('hotels').doc(hotelId).update({
         'availableRooms': FieldValue.increment(-roomsBooked),
@@ -160,7 +163,8 @@ class FirestoreService {
     return _db
         .collection('bookings')
         .where('userId', isEqualTo: userId)
-        .orderBy('bookingDate', descending: true)
+        // Bỏ orderBy để tránh cần tạo composite index
+        // Sẽ sắp xếp ở client side trong UI
         .snapshots()
         .map((snapshot) {
           return snapshot.docs.map((doc) {
