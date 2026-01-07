@@ -90,6 +90,17 @@ class FirestoreService {
     });
   }
 
+  Future<void> updateHotelAvailableRooms(String hotelId, int roomsBooked) async {
+    try {
+      await _db.collection('hotels').doc(hotelId).update({
+        'availableRooms': FieldValue.increment(-roomsBooked),
+      });
+    } catch (e) {
+      print('Error updating hotel available rooms: $e');
+      rethrow;
+    }
+  }
+
   // ==================== TOUR OPERATIONS ====================
 
   Stream<List<Tour>> getTours() {

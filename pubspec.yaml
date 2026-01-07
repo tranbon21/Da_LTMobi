@@ -49,6 +49,20 @@ dependencies:
   intl: ^0.19.0
   flutter_rating_bar: ^4.0.1
   image_picker: ^1.1.2
+  
+  # Advanced UI Effects (Đề tài 1)
+  shimmer: ^3.0.0                    # Loading skeleton effect
+  flutter_easyloading: ^3.0.5        # Beautiful loading indicators
+  
+  # Slider & Calendar (Đề tài 2)
+  carousel_slider: ^5.0.0            # Image carousel/slider
+  table_calendar: ^3.1.2             # Calendar picker for dates
+  
+  # Notifications (Đề tài 7)
+  fluttertoast: ^8.2.8               # Toast notifications
+  
+  # System Interaction (Đề tài 5)
+  url_launcher: ^6.3.1               # Open URLs (Google Maps, browser, etc.)
 
 dev_dependencies:
   flutter_test:

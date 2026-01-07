@@ -230,3 +230,36 @@ git push origin feature/auth-bon  # hoặc branch của bạn
 ---
 
 **🚀 Chúc nhóm làm việc hiệu quả!**
+
+
+Yêu cầu Cấu trúc & Nguyên tắc Lập trình:
+Công nghệ Cơ bản: Sử dụng Dart và Flutter để xây dựng ứng dụng đa nền tảng.
+Cấu trúc Dự án: Cung cấp cấu trúc thư mục rõ ràng theo mô hình MVVM (Model-View-ViewModel) hoặc Repository Pattern.
+Quản lý Trạng thái (State Management):
+Sử dụng thư viện [Chọn 1 trong 3: Provider, BLoC (Cubit), hoặc GetX] để quản lý trạng thái toàn cục (Global State) của ứng dụng (ví dụ: trạng thái đăng nhập, danh sách khách sạn).
+Minh họa việc sử dụng StatelessWidget và StatefulWidget đúng mục đích.
+Yêu cầu Triển khai Code các Tính năng Chính:
+1. Giao diện & Bố cục (Áp dụng Bài 3 & 4):
+Thành phần cơ bản: Sử dụng Scaffold, AppBar, và các Widget Material Design/Cupertino.
+Bố cục Hiển thị: Xây dựng màn hình danh sách khách sạn (Home) và màn hình Lịch sử Đơn hàng. Cả hai đều phải sử dụng ListView.builder (hoặc GridView.builder nếu phù hợp) để tối ưu hóa hiệu suất hiển thị.
+Thiết kế Card: Sử dụng Widget Card và Padding để thiết kế giao diện từng mục khách sạn, bên trong sử dụng Row và Column kết hợp với Expanded để căn chỉnh bố cục một cách linh hoạt.
+Tương tác Form: Thiết kế màn hình Đăng nhập/Đăng ký và màn hình Đặt phòng (Booking Form) sử dụng TextField (với InputDecoration đầy đủ) và ElevatedButton.
+2. Điều hướng (Navigation) (Áp dụng Bài 3 & 4):
+Sử dụng Named Routes (Định tuyến có tên) để quản lý việc chuyển đổi giữa các màn hình (Home, Detail, Booking).
+Minh họa cách chuyển đối tượng dữ liệu (Model Khách sạn) khi chuyển từ màn hình Home sang màn hình Chi tiết thông qua Navigator.pushNamed (sử dụng thuộc tính arguments).
+3. Giao tiếp Dữ liệu & Firebase (Áp dụng Bài 6-P1, P2, P3):
+Model Dữ liệu & JSON: Tạo các lớp (Class) HotelModel, RoomModel, và BookingModel với các phương thức fromJson và toJson để thực hiện JSON Serialization/Deserialization (chuyển đổi dữ liệu).
+Khởi tạo Firebase: Minh họa cách sử dụng Firebase.initializeApp() trong hàm main() để khởi tạo cấu hình.
+Firebase Authentication: Viết một lớp AuthService với các hàm cơ bản để mô phỏng Đăng nhập ẩn danh (signInAnonymously) hoặc Đăng ký/Đăng nhập bằng Email/Mật khẩu.
+Firebase Cloud Firestore (Data Management):
+Viết một lớp HotelRepository chuyên trách việc giao tiếp với Firestore.
+Minh họa cách tạo CollectionReference để trỏ đến bộ sưu tập hotels và bookings.
+Triển khai hàm fetchHotels sử dụng truy vấn Firestore có điều kiện (where()) và sắp xếp (orderBy()) để mô phỏng tính năng Tìm kiếm/Lọc.
+Triển khai hàm streamBookings sử dụng snapshots() để minh họa việc lấy dữ liệu theo thời gian thực cho màn hình Lịch sử Đơn hàng.
+Triển khai thao tác Thêm/Cập nhật/Xóa dữ liệu đơn hàng (ví dụ: add(), update(), delete()).
+4. Lưu trữ Dữ liệu Bổ sung (Áp dụng Bài 6-P2, P3):
+Lưu trữ Cục bộ: Minh họa việc sử dụng Shared Preferences để lưu trữ token hoặc trạng thái đăng nhập của người dùng.
+Hoặc nếu cần quản lý cấu trúc dữ liệu phức tạp hơn ngoài Firestore: Viết một lớp DatabaseHelper với các hàm để mở/đóng cơ sở dữ liệu và thực hiện thao tác CRUD với SQFLite (SQLite).
+5. Áp dụng Thư viện Nâng cao (Áp dụng Bài 5 & Đề tài Thư viện):
+Tích hợp thư viện cached_network_image hoặc image_picker để xử lý hiển thị/tương tác với hình ảnh khách sạn.
+Minh họa cách xử lý Toast Notification hoặc SnackBar để hiển thị thông báo thành công/thất bại sau khi Đặt phòng.
