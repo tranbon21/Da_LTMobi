@@ -103,6 +103,7 @@ class AuthService {
     required String password,
     required String name,
     String? phoneNumber,
+    UserRole role = UserRole.customer, // Role mặc định là customer
   }) async {
     try {
       // Gọi Firebase Auth để tạo tài khoản mới với email và password
@@ -123,6 +124,7 @@ class AuthService {
           name: name, // Tên người dùng
           phoneNumber: phoneNumber, // Số điện thoại (có thể null)
           createdAt: DateTime.now(), // Thời gian tạo tài khoản
+          role: role, // Role của user (customer/hotelOwner/tourOperator)
         );
 
         // Lưu thông tin user vào Firestore database
@@ -256,6 +258,37 @@ class AuthService {
 
       // Throw lại exception để UI có thể xử lý
       rethrow;
+    }
+  }
+
+  /// Lấy role (vai trò) của user hiện tại
+  ///
+  /// Trả về UserRole của user đang đăng nhập
+  /// Trả về null nếu chưa đăng nhập hoặc không tìm thấy user trong Firestore
+  ///
+  /// Sử dụng method này để kiểm tra quyền hạn của user
+  /// Ví dụ: Chỉ cho phép hotel_owner truy cập màn hình đăng bài khách sạn
+  Future<UserRole?> getUserRole() async {
+    try {
+      // Lấy user hiện tại từ Firebase Auth
+      final currentUser = _auth.currentUser;
+
+      // Nếu chưa đăng nhập hoặc là guest thì return null
+      if (currentUser == null || currentUser.isAnonymous) {
+        return null;
+      }
+
+      // Lấy thông tin user từ Firestore
+      final userData = await _firestoreService.getUser(currentUser.uid);
+
+      // Trả về role của user (hoặc null nếu không tìm thấy)
+      return userData?.role;
+    } catch (e) {
+      // In lỗi ra console để debug
+      print('Lỗi khi lấy role của user: $e');
+
+      // Trả về null nếu có lỗi
+      return null;
     }
   }
 }

@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 // Import EasyLoading để hiển thị loading indicator đẹp
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+// Import UserModel để sử dụng UserRole enum
+import '../models/user_model.dart';
+// Import HomeScreen để navigate sau khi đăng ký thành công
+import 'home_screen.dart';
 
 /// Màn hình đăng ký tài khoản mới
 ///
@@ -11,6 +15,7 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 /// - Họ tên
 /// - Email
 /// - Mật khẩu
+/// - Chọn vai trò (Role): Khách hàng, Chủ khách sạn, hoặc Nhà cung cấp tour
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
@@ -46,6 +51,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   /// null = không có lỗi, String = thông báo lỗi
   String? _error;
 
+  /// Role (vai trò) được chọn bởi user
+  /// Mặc định là customer (khách hàng)
+  UserRole _selectedRole = UserRole.customer;
+
   // ==================== LIFECYCLE ====================
 
   /// Hàm dispose - được gọi khi widget bị hủy
@@ -69,7 +78,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   ///
   /// Hàm này sẽ:
   /// 1. Validate form (kiểm tra các field có hợp lệ không)
-  /// 2. Gọi AuthService để tạo tài khoản
+  /// 2. Gọi AuthService để tạo tài khoản với role đã chọn
   /// 3. Hiển thị EasyLoading khi đang chuyển trang
   /// 4. Hiển thị thông báo thành công hoặc lỗi
   /// 5. AuthGate sẽ tự động chuyển sang HomeScreen nếu đăng ký thành công
@@ -93,11 +102,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       // Gọi AuthService để đăng ký tài khoản mới
       // trim() để xóa khoảng trắng thừa ở đầu/cuối
+      // Truyền role đã chọn vào parameter
       await AuthService().registerWithEmailAndPassword(
         email: _emailCtrl.text.trim(), // Email người dùng
         password:
             _passwordCtrl.text, // Mật khẩu (không trim vì có thể có space)
         name: _nameCtrl.text.trim(), // Họ tên người dùng
+        role: _selectedRole, // Role đã chọn (customer/hotelOwner/tourOperator)
       );
 
       // Đăng ký thành công
@@ -113,14 +124,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
       // Đợi 1 giây để user đọc thông báo
       await Future.delayed(const Duration(seconds: 1));
 
-      // Lưu ý: KHÔNG cần Navigator.push vì AuthGate sẽ tự động
-      // chuyển sang HomeScreen khi phát hiện user đã đăng nhập
-
       // Kiểm tra xem widget còn mounted (chưa bị dispose) không
       if (mounted) {
-        // Hiển thị SnackBar thông báo (optional, vì đã có EasyLoading)
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Chào mừng bạn đến với ứng dụng!')),
+        // Navigate đến HomeScreen và xóa tất cả routes trước đó
+        // pushAndRemoveUntil sẽ xóa LoginScreen và RegisterScreen khỏi stack
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          (route) => false, // Xóa tất cả routes trước đó
         );
       }
     } catch (e) {
@@ -247,6 +258,146 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       : null,
                   enabled: !_loading, // Disable khi đang loading
                 ),
+                const SizedBox(height: 24),
+
+                // ==================== ROLE SELECTION ====================
+
+                // Tiêu đề cho phần chọn role
+                const Text(
+                  'Bạn là:',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 12),
+
+                // Radio button cho Customer (Khách hàng)
+                RadioListTile<UserRole>(
+                  // Giá trị của radio button này
+                  value: UserRole.customer,
+                  // Giá trị đang được chọn
+                  groupValue: _selectedRole,
+                  // Callback khi user chọn radio button này
+                  onChanged: _loading
+                      ? null // Disable khi đang loading
+                      : (UserRole? value) {
+                          // Cập nhật state với role mới được chọn
+                          setState(() {
+                            _selectedRole = value!;
+                          });
+                        },
+                  // Tiêu đề hiển thị
+                  title: const Row(
+                    children: [
+                      // Icon khách hàng
+                      Text('🙋', style: TextStyle(fontSize: 24)),
+                      SizedBox(width: 8),
+                      // Text "Khách hàng"
+                      Text('Khách hàng'),
+                    ],
+                  ),
+                  // Mô tả ngắn về role này
+                  subtitle: const Text(
+                    'Tôi muốn đặt phòng khách sạn và tour du lịch',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  // Border xung quanh
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    side: BorderSide(
+                      color: _selectedRole == UserRole.customer
+                          ? Colors.blue
+                          : Colors.grey.shade300,
+                      width: 2,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // Radio button cho Hotel Owner (Chủ khách sạn)
+                RadioListTile<UserRole>(
+                  // Giá trị của radio button này
+                  value: UserRole.hotelOwner,
+                  // Giá trị đang được chọn
+                  groupValue: _selectedRole,
+                  // Callback khi user chọn radio button này
+                  onChanged: _loading
+                      ? null // Disable khi đang loading
+                      : (UserRole? value) {
+                          // Cập nhật state với role mới được chọn
+                          setState(() {
+                            _selectedRole = value!;
+                          });
+                        },
+                  // Tiêu đề hiển thị
+                  title: const Row(
+                    children: [
+                      // Icon khách sạn
+                      Text('🏨', style: TextStyle(fontSize: 24)),
+                      SizedBox(width: 8),
+                      // Text "Chủ khách sạn"
+                      Text('Chủ khách sạn'),
+                    ],
+                  ),
+                  // Mô tả ngắn về role này
+                  subtitle: const Text(
+                    'Tôi muốn đăng bài quảng cáo khách sạn của mình',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  // Border xung quanh
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    side: BorderSide(
+                      color: _selectedRole == UserRole.hotelOwner
+                          ? Colors.orange
+                          : Colors.grey.shade300,
+                      width: 2,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // Radio button cho Tour Operator (Nhà cung cấp tour)
+                RadioListTile<UserRole>(
+                  // Giá trị của radio button này
+                  value: UserRole.tourOperator,
+                  // Giá trị đang được chọn
+                  groupValue: _selectedRole,
+                  // Callback khi user chọn radio button này
+                  onChanged: _loading
+                      ? null // Disable khi đang loading
+                      : (UserRole? value) {
+                          // Cập nhật state với role mới được chọn
+                          setState(() {
+                            _selectedRole = value!;
+                          });
+                        },
+                  // Tiêu đề hiển thị
+                  title: const Row(
+                    children: [
+                      // Icon tour du lịch
+                      Text('✈️', style: TextStyle(fontSize: 24)),
+                      SizedBox(width: 8),
+                      // Text "Nhà cung cấp tour"
+                      Text('Nhà cung cấp tour'),
+                    ],
+                  ),
+                  // Mô tả ngắn về role này
+                  subtitle: const Text(
+                    'Tôi muốn đăng bài quảng cáo tour du lịch',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  // Border xung quanh
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    side: BorderSide(
+                      color: _selectedRole == UserRole.tourOperator
+                          ? Colors.purple
+                          : Colors.grey.shade300,
+                      width: 2,
+                    ),
+                  ),
+                ),
+
+                // Khoảng cách
                 const SizedBox(height: 20),
 
                 // ==================== THÔNG BÁO LỖI ====================

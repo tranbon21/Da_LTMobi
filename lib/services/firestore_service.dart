@@ -3,6 +3,7 @@ import '../models/user_model.dart';
 import '../models/hotel_model.dart';
 import '../models/tour_model.dart';
 import '../models/booking_model.dart';
+import '../models/promotion_model.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -104,6 +105,32 @@ class FirestoreService {
     }
   }
 
+  /// Tạo hotel mới (cho hotel owner)
+  ///
+  /// Method này cho phép chủ khách sạn đăng bài khách sạn mới
+  /// Tham số:
+  /// - hotel: Object Hotel chứa thông tin khách sạn
+  ///
+  /// Trả về: ID của hotel vừa tạo
+  Future<String> createHotel(Hotel hotel) async {
+    try {
+      // Thêm hotel vào collection 'hotels'
+      // add() sẽ tự động tạo ID mới
+      DocumentReference docRef = await _db
+          .collection('hotels')
+          .add(hotel.toMap());
+
+      // Trả về ID của document vừa tạo
+      return docRef.id;
+    } catch (e) {
+      // In lỗi ra console để debug
+      print('Error creating hotel: $e');
+
+      // Throw lại exception để UI có thể xử lý
+      rethrow;
+    }
+  }
+
   // ==================== TOUR OPERATIONS ====================
 
   Stream<List<Tour>> getTours() {
@@ -143,6 +170,32 @@ class FirestoreService {
         return Tour.fromMap(doc.data() as Map<String, dynamic>, doc.id);
       }).toList();
     });
+  }
+
+  /// Tạo tour mới (cho tour operator)
+  ///
+  /// Method này cho phép nhà cung cấp tour đăng bài tour du lịch mới
+  /// Tham số:
+  /// - tour: Object Tour chứa thông tin tour
+  ///
+  /// Trả về: ID của tour vừa tạo
+  Future<String> createTour(Tour tour) async {
+    try {
+      // Thêm tour vào collection 'tours'
+      // add() sẽ tự động tạo ID mới
+      DocumentReference docRef = await _db
+          .collection('tours')
+          .add(tour.toMap());
+
+      // Trả về ID của document vừa tạo
+      return docRef.id;
+    } catch (e) {
+      // In lỗi ra console để debug
+      print('Error creating tour: $e');
+
+      // Throw lại exception để UI có thể xử lý
+      rethrow;
+    }
   }
 
   // ==================== BOOKING OPERATIONS ====================
@@ -203,12 +256,58 @@ class FirestoreService {
     }
   }
 
+  /// Hủy booking (cập nhật status thành cancelled)
+  ///
+  /// Method này cho phép user hủy booking của mình
+  /// Chỉ nên gọi method này nếu:
+  /// - Booking status = pending hoặc confirmed
+  /// - Chưa quá 24 giờ kể từ khi đặt
+  ///
+  /// Tham số:
+  /// - bookingId: ID của booking cần hủy
+  ///
+  /// Method này sẽ:
+  /// 1. Cập nhật status của booking thành 'cancelled'
+  /// 2. Thêm timestamp 'cancelledAt' để ghi nhận thời gian hủy
   Future<void> cancelBooking(String bookingId) async {
     try {
-      await updateBookingStatus(bookingId, BookingStatus.cancelled);
+      // Cập nhật document trong collection 'bookings'
+      await _db.collection('bookings').doc(bookingId).update({
+        // Cập nhật status thành 'cancelled'
+        'status': 'cancelled',
+        // Thêm timestamp để ghi nhận thời gian hủy
+        'cancelledAt': DateTime.now().toIso8601String(),
+      });
     } catch (e) {
+      // In lỗi ra console để debug
       print('Error cancelling booking: $e');
+
+      // Throw lại exception để UI có thể xử lý
       rethrow;
     }
+  }
+
+  // ==================== PROMOTION OPERATIONS ====================
+
+  /// Lấy danh sách promotions (khuyến mãi) từ Firestore
+  ///
+  /// Method này trả về Stream để lắng nghe realtime updates
+  /// Chỉ lấy các promotions đang active (isActive = true)
+  ///
+  /// Sử dụng trong HomeScreen để hiển thị ưu đãi
+  Stream<List<Promotion>> getPromotions() {
+    return _db
+        .collection('promotions')
+        // Chỉ lấy promotions đang active
+        .where('isActive', isEqualTo: true)
+        // Lắng nghe realtime updates
+        .snapshots()
+        // Map snapshot thành List<Promotion>
+        .map((snapshot) {
+          return snapshot.docs.map((doc) {
+            // Convert mỗi document thành Promotion object
+            return Promotion.fromMap(doc.data(), doc.id);
+          }).toList();
+        });
   }
 }

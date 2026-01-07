@@ -15,6 +15,8 @@ import 'personal_info_screen.dart';
 import 'booking_history_screen.dart';
 import 'help_screen.dart';
 import 'about_screen.dart';
+import 'create_hotel_post_screen.dart';
+import 'create_tour_post_screen.dart';
 
 /// Màn hình Tài khoản (Profile Screen)
 ///
@@ -273,9 +275,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
 
-                  // Hiển thị badge "Guest" nếu là khách
-                  if (isGuest) ...[
-                    const SizedBox(height: AppSizes.paddingS),
+                  // ==================== ROLE BADGE ====================
+
+                  // Hiển thị badge role cho tất cả user
+                  const SizedBox(height: AppSizes.paddingS),
+
+                  // Badge hiển thị role của user
+                  if (isGuest)
+                    // Badge cho guest
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
@@ -294,12 +301,86 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           fontWeight: FontWeight.w500,
                         ),
                       ),
+                    )
+                  else if (_userData != null)
+                    // Badge cho registered user (hiển thị role)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        // Màu khác nhau cho từng role
+                        color: _userData!.role == UserRole.hotelOwner
+                            ? Colors.orange.shade100
+                            : _userData!.role == UserRole.tourOperator
+                            ? Colors.purple.shade100
+                            : Colors.blue.shade100,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: _userData!.role == UserRole.hotelOwner
+                              ? Colors.orange.shade300
+                              : _userData!.role == UserRole.tourOperator
+                              ? Colors.purple.shade300
+                              : Colors.blue.shade300,
+                        ),
+                      ),
+                      child: Text(
+                        // Hiển thị tên role bằng tiếng Việt
+                        _userData!.role.displayName,
+                        style: TextStyle(
+                          color: _userData!.role == UserRole.hotelOwner
+                              ? Colors.orange.shade700
+                              : _userData!.role == UserRole.tourOperator
+                              ? Colors.purple.shade700
+                              : Colors.blue.shade700,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
-                  ],
 
                   const SizedBox(height: AppSizes.paddingXL),
 
                   // ==================== CÁC TÙY CHỌN ====================
+
+                  // ==================== OPTIONS CHO HOTEL OWNER ====================
+
+                  // Nút "Đăng bài khách sạn" - chỉ hiển thị cho hotel_owner
+                  if (!isGuest && _userData?.role == UserRole.hotelOwner)
+                    _ProfileOption(
+                      icon: Icons.hotel,
+                      title: 'Đăng bài khách sạn',
+                      onTap: () {
+                        // Navigate đến màn hình CreateHotelPostScreen
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CreateHotelPostScreen(),
+                          ),
+                        );
+                      },
+                    ),
+
+                  // ==================== OPTIONS CHO TOUR OPERATOR ====================
+
+                  // Nút "Đăng bài tour" - chỉ hiển thị cho tour_operator
+                  if (!isGuest && _userData?.role == UserRole.tourOperator)
+                    _ProfileOption(
+                      icon: Icons.tour,
+                      title: 'Đăng bài tour du lịch',
+                      onTap: () {
+                        // Navigate đến màn hình CreateTourPostScreen
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CreateTourPostScreen(),
+                          ),
+                        );
+                      },
+                    ),
+
+                  // ==================== OPTIONS CHUNG ====================
 
                   // Thông tin cá nhân (ẩn nếu là guest)
                   if (!isGuest)
