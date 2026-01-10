@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/tour_model.dart';
+import '../models/booking_model.dart';
+import '../services/firestore_service.dart';
 import '../utils/constants.dart';
 import '../widgets/custom_button.dart';
 import 'package:intl/intl.dart';
@@ -20,32 +23,174 @@ class _TourDetailScreenState extends State<TourDetailScreen> {
   bool _isBooking = false;
 
   Future<void> _bookTour() async {
+    // Kiểm tra tour còn chỗ không
     if (!widget.tour.isAvailable) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Tour đã hết chỗ')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tour đã hết chỗ')),
+      );
+      return;
+    }
+
+    // Kiểm tra số người không vượt quá số chỗ còn lại
+    if (_numberOfGuests > (widget.tour.maxParticipants - widget.tour.currentParticipants)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Số người vượt quá số chỗ còn lại')),
+      );
       return;
     }
 
     setState(() => _isBooking = true);
 
-    // TODO: Implement tour booking logic here
-    // 1. Get current user ID
-    // 2. Create booking object
-    // 3. Save to database
-    // 4. Show success message
+    try {
+      // 1. Lấy user ID hiện tại
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      
+      if (userId == null) {
+        // Chưa đăng nhập
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Vui lòng đăng nhập để đặt tour')),
+          );
+          setState(() => _isBooking = false);
+        }
+        return;
+      }
 
-    // Simulate booking delay
-    await Future.delayed(const Duration(seconds: 1));
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('TODO: Implement tour booking logic'),
-          backgroundColor: AppColors.warning,
-        ),
+      // 2. Tạo Booking object
+      final booking = Booking(
+        id: '', // Firestore sẽ tự tạo ID
+        userId: userId,
+        type: BookingType.tour,
+        itemId: widget.tour.id,
+        itemName: widget.tour.name,
+        bookingDate: DateTime.now(),
+        checkInDate: widget.tour.startDate, // Ngày bắt đầu tour
+        checkOutDate: widget.tour.endDate, // Ngày kết thúc tour
+        numberOfGuests: _numberOfGuests,
+        totalPrice: widget.tour.price * _numberOfGuests,
+        status: BookingStatus.pending, // Pending - chờ xác nhận
+        specialRequests: null,
+        additionalInfo: {
+          'tourGuide': widget.tour.tourGuide,
+          'destination': widget.tour.destination,
+        },
       );
-      setState(() => _isBooking = false);
+
+      // 3. Lưu vào Firestore
+      await FirestoreService().createBooking(booking);
+
+      // 4. Hiển thị dialog thành công
+      if (mounted) {
+        setState(() => _isBooking = false);
+        
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Success Icon
+                  Container(
+                    width: 70,
+                    height: 70,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.success.withOpacity(0.1),
+                    ),
+                    child: const Icon(Icons.check_circle, color: AppColors.success, size: 40),
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Title
+                  const Text(
+                    'Đặt tour thành công!',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  
+                  const SizedBox(height: 20),
+                  
+                  // Info Card
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        _buildInfoRow(Icons.tour, 'Tour', widget.tour.name, AppColors.primary),
+                        const SizedBox(height: 12),
+                        _buildInfoRow(Icons.people, 'Số người', '$_numberOfGuests người', AppColors.primary),
+                        const SizedBox(height: 12),
+                        _buildInfoRow(
+                          Icons.payments, 
+                          'Tổng tiền',
+                          NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(booking.totalPrice),
+                          AppColors.warning,
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Status
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.pending_actions, size: 16, color: AppColors.warning),
+                        SizedBox(width: 6),
+                        Text('Chờ xác nhận', style: TextStyle(color: AppColors.warning, fontWeight: FontWeight.bold, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 20),
+                  
+                  // Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        Navigator.of(context).pop();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('Xem booking', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      // Xử lý lỗi
+      if (mounted) {
+        setState(() => _isBooking = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Có lỗi xảy ra: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     }
   }
 
@@ -315,6 +460,25 @@ class _TourDetailScreenState extends State<TourDetailScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  // Helper method để build info row
+  Widget _buildInfoRow(IconData icon, String label, String value, Color iconColor) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: iconColor),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+              Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

@@ -2,15 +2,17 @@
 import 'package:flutter/material.dart';
 // Import các constants của app (màu sắc, kích thước, strings)
 import '../utils/constants.dart';
+// Import models và services
+import '../models/tour_model.dart';
+import '../services/firestore_service.dart';
+import 'tour_detail_screen.dart';
 
 /// Màn hình Danh sách Tour Du lịch
 ///
-/// Màn hình này hiển thị danh sách các tour du lịch
-/// Hiện tại đang ở trạng thái TODO - chưa load dữ liệu từ database
+/// Màn hình này hiển thị danh sách các tour du lịch từ Firebase
 ///
-/// Các tính năng sẽ có:
+/// Các tính năng:
 /// - Tìm kiếm tour theo điểm đến
-/// - Lọc tour theo giá, thời gian
 /// - Hiển thị danh sách tour với ảnh, giá, rating
 /// - Navigate đến màn hình chi tiết tour
 class ToursScreen extends StatefulWidget {
@@ -24,25 +26,18 @@ class _ToursScreenState extends State<ToursScreen> {
   // ==================== CONTROLLERS ====================
 
   /// Controller cho TextField tìm kiếm
-  /// Dùng để lấy giá trị điểm đến mà user nhập vào
   final TextEditingController _searchController = TextEditingController();
 
   // ==================== STATE ====================
 
   /// Chuỗi tìm kiếm điểm đến hiện tại
-  /// Được cập nhật khi user nhập vào search bar
   String _searchDestination = '';
 
   // ==================== LIFECYCLE ====================
 
-  /// Hàm dispose - được gọi khi widget bị hủy
-  ///
-  /// Giải phóng bộ nhớ của controller để tránh memory leak
   @override
   void dispose() {
-    // Giải phóng controller tìm kiếm
     _searchController.dispose();
-    // Gọi dispose của parent class
     super.dispose();
   }
 
@@ -53,69 +48,36 @@ class _ToursScreenState extends State<ToursScreen> {
     return Scaffold(
       // ==================== APP BAR ====================
 
-      // AppBar với tiêu đề "Tour du lịch"
       appBar: AppBar(
-        // Tiêu đề lấy từ constants
         title: const Text(AppStrings.tours),
-        // Actions ở góc phải
-        actions: [
-          // Nút filter (TODO: chưa implement)
-          IconButton(
-            // Icon filter list
-            icon: const Icon(Icons.filter_list),
-            // Callback khi bấm nút
-            onPressed: () {
-              // TODO: Implement filter theo giá, thời gian, loại tour
-              // Hiển thị thông báo tạm thời
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('TODO: Implement filter')),
-              );
-            },
-          ),
-        ],
       ),
 
       // ==================== BODY ====================
 
-      // Body của màn hình
       body: Column(
         children: [
           // ==================== SEARCH BAR ====================
 
-          // Padding cho search bar
           Padding(
             padding: const EdgeInsets.all(AppSizes.paddingM),
-            // TextField tìm kiếm
             child: TextField(
-              // Controller để lấy giá trị
               controller: _searchController,
-              // Decoration (giao diện) của TextField
               decoration: InputDecoration(
-                // Hint text hiển thị khi chưa nhập
                 hintText: AppStrings.searchTours,
-                // Icon search ở bên trái
                 prefixIcon: const Icon(Icons.search),
-                // Icon clear ở bên phải (chỉ hiển thị khi có text)
                 suffixIcon: _searchDestination.isNotEmpty
                     ? IconButton(
-                        // Icon X để xóa
                         icon: const Icon(Icons.clear),
-                        // Callback khi bấm nút clear
                         onPressed: () {
-                          // Cập nhật state
                           setState(() {
-                            // Xóa text trong controller
                             _searchController.clear();
-                            // Reset search destination
                             _searchDestination = '';
                           });
                         },
                       )
-                    : null, // Không hiển thị icon nếu chưa có text
+                    : null,
               ),
-              // Callback khi text thay đổi
               onChanged: (value) {
-                // Cập nhật state với giá trị mới
                 setState(() {
                   _searchDestination = value;
                 });
@@ -125,50 +87,256 @@ class _ToursScreenState extends State<ToursScreen> {
 
           // ==================== TOURS LIST ====================
 
-          // Expanded để chiếm hết không gian còn lại
           Expanded(
-            // Center để căn giữa nội dung
-            child: Center(
-              // Column chứa icon và text
-              child: Column(
-                // Căn giữa theo chiều dọc
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // ==================== ICON ====================
+            child: StreamBuilder<List<Tour>>(
+              stream: FirestoreService().getTours(),
+              builder: (context, snapshot) {
+                // Loading state
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
 
-                  // Icon tour (lớn, màu xám nhạt)
-                  Icon(
-                    Icons.tour_outlined, // Icon tour outline
-                    size: AppSizes.iconXL * 2, // Kích thước lớn (gấp đôi XL)
-                    color: AppColors.textHint, // Màu xám nhạt
-                  ),
-
-                  const SizedBox(height: AppSizes.paddingM),
-
-                  // ==================== TEXT THÔNG BÁO ====================
-
-                  // Text chính: "Chưa có dữ liệu tour"
-                  Text(
-                    'Chưa có dữ liệu tour',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: AppColors.textSecondary, // Màu text secondary
+                // Error state
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          size: 64,
+                          color: AppColors.error,
+                        ),
+                        const SizedBox(height: AppSizes.paddingM),
+                        Text(
+                          'Có lỗi xảy ra: ${snapshot.error}',
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                     ),
-                  ),
+                  );
+                }
 
+                // Get tours from snapshot
+                List<Tour> tours = snapshot.data ?? [];
+
+                // Filter tours based on search query
+                if (_searchDestination.isNotEmpty) {
+                  final query = _searchDestination.toLowerCase().trim();
+                  tours = tours.where((tour) {
+                    return tour.destination.toLowerCase().contains(query) ||
+                        tour.name.toLowerCase().contains(query);
+                  }).toList();
+                }
+
+                // Empty state
+                if (tours.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.tour_outlined,
+                          size: AppSizes.iconXL * 2,
+                          color: AppColors.textHint,
+                        ),
+                        const SizedBox(height: AppSizes.paddingM),
+                        Text(
+                          _searchDestination.isEmpty
+                              ? 'Chưa có tour nào'
+                              : 'Không tìm thấy tour phù hợp',
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                        ),
+                        if (_searchDestination.isNotEmpty) ...[
+                          const SizedBox(height: AppSizes.paddingS),
+                          Text(
+                            'Thử tìm kiếm với từ khóa khác',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: AppColors.textHint,
+                                ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                }
+
+                // Tours list
+                return ListView.separated(
+                  padding: const EdgeInsets.all(AppSizes.paddingM),
+                  itemCount: tours.length,
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: AppSizes.paddingM),
+                  itemBuilder: (context, index) {
+                    final tour = tours[index];
+                    return _buildTourCard(tour);
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build tour card widget
+  Widget _buildTourCard(Tour tour) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSizes.radiusM),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppSizes.radiusM),
+        onTap: () {
+          // Navigate to tour detail screen
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TourDetailScreen(tour: tour),
+            ),
+          );
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Tour image (if available)
+            if (tour.imageUrls.isNotEmpty)
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(AppSizes.radiusM),
+                ),
+                child: Image.network(
+                  tour.imageUrls.first,
+                  height: 180,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return _buildPlaceholderImage();
+                  },
+                ),
+              )
+            else
+              _buildPlaceholderImage(),
+
+            // Tour info
+            Padding(
+              padding: const EdgeInsets.all(AppSizes.paddingM),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Tour name
+                  Text(
+                    tour.name,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const SizedBox(height: AppSizes.paddingS),
 
-                  // Text phụ: "TODO: Load tours từ database"
-                  Text(
-                    'TODO: Load tours từ database',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textHint, // Màu hint (xám nhạt hơn)
-                    ),
+                  // Destination
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.location_on,
+                        size: 16,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        tour.destination,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSizes.paddingS),
+
+                  // Duration
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.calendar_today,
+                        size: 16,
+                        color: AppColors.textSecondary,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${tour.duration} ngày',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSizes.paddingM),
+
+                  // Price and rating
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Price
+                      Text(
+                        '${tour.price.toStringAsFixed(0).replaceAllMapped(
+                              RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                              (Match m) => '${m[1]},',
+                            )} ₫',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+
+                      // Rating
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.star,
+                            size: 16,
+                            color: Colors.amber,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            tour.rating.toStringAsFixed(1),
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Build placeholder image when no image is available
+  Widget _buildPlaceholderImage() {
+    return Container(
+      height: 180,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppSizes.radiusM),
+        ),
+      ),
+      child: const Center(
+        child: Icon(
+          Icons.tour,
+          size: 64,
+          color: Colors.grey,
+        ),
       ),
     );
   }

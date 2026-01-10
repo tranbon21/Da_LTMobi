@@ -36,26 +36,85 @@ class Tour {
   });
 
   factory Tour.fromMap(Map<String, dynamic> map, String id) {
+    // Helper function để parse giá trị thành double an toàn
+    double _parseDouble(dynamic value, double defaultValue) {
+      if (value == null) return defaultValue;
+      if (value is double) return value;
+      if (value is int) return value.toDouble();
+      if (value is String) {
+        return double.tryParse(value) ?? defaultValue;
+      }
+      return defaultValue;
+    }
+
+    // Helper function để parse giá trị thành int an toàn
+    int _parseInt(dynamic value, int defaultValue) {
+      if (value == null) return defaultValue;
+      if (value is int) return value;
+      if (value is double) return value.toInt();
+      if (value is String) {
+        return int.tryParse(value) ?? defaultValue;
+      }
+      return defaultValue;
+    }
+
+    // Helper function để parse List<String> an toàn
+    List<String> _parseStringList(dynamic value) {
+      if (value == null) return [];
+      if (value is List) {
+        try {
+          return List<String>.from(value);
+        } catch (e) {
+          print('Error parsing list: $e');
+          return [];
+        }
+      }
+      if (value is String) {
+        // Nếu là string rỗng, trả về list rỗng
+        if (value.isEmpty) return [];
+        // Nếu là string không rỗng, wrap thành list
+        return [value];
+      }
+      return [];
+    }
+
+    // Helper function để parse DateTime an toàn
+    DateTime _parseDateTime(dynamic value) {
+      if (value == null) return DateTime.now();
+      
+      if (value is DateTime) return value;
+      
+      if (value is String) {
+        try {
+          // Thử parse ISO 8601 format
+          return DateTime.parse(value);
+        } catch (e) {
+          print('Error parsing date "$value": $e');
+          // Nếu parse lỗi, trả về ngày hiện tại
+          return DateTime.now();
+        }
+      }
+      
+      // Nếu không phải String hoặc DateTime, trả về ngày hiện tại
+      return DateTime.now();
+    }
+
     return Tour(
       id: id,
       name: map['name'] ?? '',
       description: map['description'] ?? '',
       destination: map['destination'] ?? '',
       country: map['country'] ?? '',
-      price: (map['price'] ?? 0).toDouble(),
-      duration: map['duration'] ?? 0,
-      rating: (map['rating'] ?? 0).toDouble(),
-      reviewCount: map['reviewCount'] ?? 0,
-      imageUrls: List<String>.from(map['imageUrls'] ?? []),
-      highlights: List<String>.from(map['highlights'] ?? []),
-      startDate: DateTime.parse(
-        map['startDate'] ?? DateTime.now().toIso8601String(),
-      ),
-      endDate: DateTime.parse(
-        map['endDate'] ?? DateTime.now().toIso8601String(),
-      ),
-      maxParticipants: map['maxParticipants'] ?? 0,
-      currentParticipants: map['currentParticipants'] ?? 0,
+      price: _parseDouble(map['price'], 0),
+      duration: _parseInt(map['duration'], 0),
+      rating: _parseDouble(map['rating'], 0),
+      reviewCount: _parseInt(map['reviewCount'], 0),
+      imageUrls: _parseStringList(map['imageUrls']),
+      highlights: _parseStringList(map['highlights']),
+      startDate: _parseDateTime(map['startDate']),
+      endDate: _parseDateTime(map['endDate']),
+      maxParticipants: _parseInt(map['maxParticipants'], 0),
+      currentParticipants: _parseInt(map['currentParticipants'], 0),
       tourGuide: map['tourGuide'] ?? '',
     );
   }
