@@ -337,47 +337,8 @@ class _HomeTabState extends State<HomeTab> {
             const SizedBox(width: 12),
             _buildHeaderIcon(Icons.chat_bubble_outline),
             const SizedBox(width: 8),
-            // Nút thông báo
-            GestureDetector(
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const NotificationsScreen(),
-                  ),
-                );
-              },
-              child: Container(
-                height: 44,
-                width: 44,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Stack(
-                  children: [
-                    const Center(
-                      child: Icon(
-                        Icons.notifications_none,
-                        color: Colors.black,
-                      ),
-                    ),
-                    // Badge cho thông báo chưa đọc
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            // Nút thông báo với badge động
+            _buildNotificationButton(context),
           ],
         ),
       ],
@@ -385,20 +346,118 @@ class _HomeTabState extends State<HomeTab> {
   );
 }
 
+  /// Build notification button với badge số thông báo chưa đọc
+  Widget _buildNotificationButton(BuildContext context) {
+    // Lấy userId hiện tại
+    final authService = Provider.of<AuthService>(context);
+    final currentUser = authService.currentUser;
+    
+    // Nếu chưa đăng nhập, hiển thị icon đơn giản
+    if (currentUser == null || currentUser.isAnonymous) {
+      return GestureDetector(
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const NotificationsScreen(),
+            ),
+          );
+        },
+        child: Container(
+          height: 44,
+          width: 44,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Center(
+            child: Icon(
+              Icons.notifications_none,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      );
+    }
+    
+    // StreamBuilder để lắng nghe số thông báo chưa đọc
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('user_notifications')
+          .where('userId', isEqualTo: currentUser.uid)
+          .where('read', isEqualTo: false)
+          .snapshots(),
+      builder: (context, snapshot) {
+        final unreadCount = snapshot.data?.docs.length ?? 0;
+        
+        return GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const NotificationsScreen(),
+              ),
+            );
+          },
+          child: Container(
+            height: 44,
+            width: 44,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Stack(
+              children: [
+                const Center(
+                  child: Icon(
+                    Icons.notifications_none,
+                    color: Colors.white,
+                  ),
+                ),
+                // Badge hiển thị số thông báo
+                if (unreadCount > 0)
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 18,
+                        minHeight: 18,
+                      ),
+                      child: Center(
+                        child: Text(
+                          unreadCount > 9 ? '9+' : unreadCount.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildHeaderIcon(IconData icon) {
-  return Container(
-    height: 44,
-    width: 44,
-    decoration: BoxDecoration(
-      color: Colors.white.withOpacity(0.15),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: Icon(
-      icon,
-      color: Colors.black,
-    ),
-  );
-}
+    return Container(
+      height: 44,
+      width: 44,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(icon, color: Colors.white),
+    );
+  }
 
   Widget _buildServiceMenu(BuildContext context) {
   return Transform.translate(

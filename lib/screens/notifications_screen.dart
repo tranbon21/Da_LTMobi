@@ -391,39 +391,201 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final type = data['type'] ?? 'general';
     final title = data['title'] ?? 'Thông báo';
     final message = data['message'] ?? '';
-    final bookingId = data['bookingId'];
-    final promotionId = data['promotionId'];
+    final typeInfo = _getTypeInfo(type);
+    
+    // Lấy totalPrice nếu có
+    final totalPrice = data['totalPrice'];
+    
+    // Parse message để loại bỏ phần "Tổng tiền" nếu có
+    String cleanMessage = message;
+    if (message.contains('Tổng tiền:')) {
+      cleanMessage = message.split('Tổng tiền:')[0].trim();
+      // Loại bỏ dấu chấm cuối nếu có
+      if (cleanMessage.endsWith('.')) {
+        cleanMessage = cleanMessage.substring(0, cleanMessage.length - 1);
+      }
+    }
     
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('ĐÓNG'),
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white,
+                (typeInfo['color'] as Color).withOpacity(0.05),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(20),
           ),
-          if (type == 'booking' && bookingId != null)
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                // TODO: Điều hướng đến trang chi tiết booking
-                print('Navigate to booking: $bookingId');
-              },
-              child: const Text('XEM ĐẶT PHÒNG'),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icon lớn với animation
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        (typeInfo['color'] as Color),
+                        (typeInfo['color'] as Color).withOpacity(0.7),
+                      ],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (typeInfo['color'] as Color).withOpacity(0.3),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    typeInfo['icon'] as IconData,
+                    color: Colors.white,
+                    size: 40,
+                  ),
+                ),
+                
+                const SizedBox(height: 20),
+                
+                // Title với emoji
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF2C3E50),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Message card (không có totalPrice)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.grey[200]!,
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    cleanMessage,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      height: 1.5,
+                      color: Color(0xFF5A6C7D),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                
+                // Hiển thị totalPrice nổi bật nếu có
+                if (totalPrice != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFF5B8DEF),
+                          Color(0xFF4A7BD8),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF5B8DEF).withOpacity(0.3),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        const Text(
+                          'Tổng tiền',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.white70,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          _formatCurrency(totalPrice),
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                
+                const SizedBox(height: 24),
+                
+                // Nút Đóng đẹp
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF5B8DEF),
+                      foregroundColor: Colors.white,
+                      elevation: 2,
+                      shadowColor: const Color(0xFF5B8DEF).withOpacity(0.3),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Đóng',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          if (type == 'promotion' && promotionId != null)
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                // TODO: Điều hướng đến trang chi tiết promotion
-                print('Navigate to promotion: $promotionId');
-              },
-              child: const Text('XEM ƯU ĐÃI'),
-            ),
-        ],
+          ),
+        ),
       ),
     );
+  }
+  
+  /// Format tiền tệ VND
+  String _formatCurrency(dynamic amount) {
+    if (amount == null) return '0₫';
+    final double price = amount is int ? amount.toDouble() : amount as double;
+    return '${price.toStringAsFixed(0).replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    )}₫';
   }
 }

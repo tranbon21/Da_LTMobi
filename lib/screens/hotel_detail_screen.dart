@@ -14,6 +14,7 @@ import 'package:url_launcher/url_launcher.dart';                  // Mở Google
 import '../models/booking_model.dart';
 import '../models/hotel_model.dart';
 import '../services/firestore_service.dart';
+import '../helpers/user_notification_helper.dart';
 import '../utils/constants.dart';
 // Local imports - Widgets
 import '../widgets/booking_success_dialog.dart';
@@ -447,6 +448,15 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
         _roomCount,
       );
 
+      // Tạo thông báo cho user
+      await UserNotificationHelper.createHotelBookingNotification(
+        userId: userId,
+        hotelName: widget.hotel.name,
+        bookingId: bookingId,
+        totalPrice: totalPrice,
+        nights: nights,
+      );
+
       await _sendBookingNotification(bookingId, nights, totalPrice);
 
       // Dismiss loading
@@ -485,7 +495,7 @@ Future<void> _sendBookingNotification(
     final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
     
     // Gửi thông báo local
-    await notificationService.sendBookingSuccessNotification(
+    await notificationService.sendHotelBookingSuccess(
       hotelName: widget.hotel.name,
       bookingId: bookingId,
     );

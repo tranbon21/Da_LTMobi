@@ -18,6 +18,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = true  // Enable desugaring for flutter_local_notifications
     }
 
     kotlinOptions {
@@ -50,4 +51,5 @@ flutter {
 
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.23")  // Cập nhật version
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")  // For flutter_local_notifications
 }

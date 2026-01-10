@@ -5,8 +5,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/tour_model.dart';
 import '../models/booking_model.dart';
 import '../services/firestore_service.dart';
+import '../services/notification_service.dart';
 import '../utils/constants.dart';
 import '../widgets/custom_button.dart';
+import '../helpers/user_notification_helper.dart';
 import 'package:intl/intl.dart';
 
 class TourDetailScreen extends StatefulWidget {
@@ -77,9 +79,23 @@ class _TourDetailScreenState extends State<TourDetailScreen> {
       );
 
       // 3. Lưu vào Firestore
-      await FirestoreService().createBooking(booking);
+      final bookingId = await FirestoreService().createBooking(booking);
 
-      // 4. Hiển thị dialog thành công
+      // 4. Tạo thông báo cho user
+      await UserNotificationHelper.createTourBookingNotification(
+        userId: userId,
+        tourName: widget.tour.name,
+        bookingId: bookingId,
+        totalPrice: booking.totalPrice,
+      );
+
+      // 5. Hiển thị local notification ngay lập tức
+      await NotificationService().sendTourBookingSuccess(
+        tourName: widget.tour.name,
+        bookingId: bookingId,
+      );
+
+      // 6. Hiển thị dialog thành công
       if (mounted) {
         setState(() => _isBooking = false);
         
