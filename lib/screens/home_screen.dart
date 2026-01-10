@@ -346,15 +346,54 @@ class _HomeTabState extends State<HomeTab> {
   );
 }
 
-  /// Build notification button với badge số thông báo chưa đọc
+  /// ==========================================================================
+  /// BUILD NOTIFICATION BUTTON VỚI BADGE ĐỘNG
+  /// ==========================================================================
+  /// 
+  /// **Chức năng:**
+  /// Tạo button thông báo ở header với badge hiển thị số thông báo chưa đọc
+  /// Badge cập nhật REALTIME khi có thông báo mới
+  /// 
+  /// **Cách hoạt động:**
+  /// 1. Check trạng thái đăng nhập của user
+  ///    - Nếu chưa đăng nhập → Hiển thị icon đơn giản (không có badge)
+  ///    - Nếu đã đăng nhập → Sử dụng StreamBuilder để lắng nghe thông báo
+  /// 
+  /// 2. StreamBuilder tự động cập nhật khi:
+  ///    - Có thông báo mới được tạo
+  ///    - User đánh dấu thông báo đã đọc
+  ///    - User xóa thông báo
+  /// 
+  /// 3. Badge logic:
+  ///    - Hiển thị số chính xác nếu <= 9 thông báo
+  ///    - Hiển thị "9+" nếu > 9 thông báo
+  ///    - Ẩn hoàn toàn nếu không có thông báo chưa đọc
+  /// 
+  /// **Firestore Query:**
+  /// ```
+  /// collection: 'user_notifications'
+  /// where: userId == currentUser.uid
+  /// where: read == false
+  /// listen: snapshots() → real-time updates
+  /// ```
+  /// ==========================================================================
   Widget _buildNotificationButton(BuildContext context) {
-    // Lấy userId hiện tại
+    // ========================================================================
+    // BƯỚC 1: LẤY THÔNG TIN USER HIỆN TẠI
+    // ========================================================================
+    // Provider.of<AuthService> để lấy service quản lý authentication
+    // listen: true → Widget sẽ rebuild khi auth state thay đổi
     final authService = Provider.of<AuthService>(context);
     final currentUser = authService.currentUser;
     
-    // Nếu chưa đăng nhập, hiển thị icon đơn giản
+    // ========================================================================
+    // BƯỚC 2: XỬ LÝ TRƯỜNG HỢP CHƯA ĐĂNG NHẬP
+    // ========================================================================
+    // Nếu user chưa đăng nhập hoặc đang dùng anonymous account
+    // → Hiển thị icon notification đơn giản (không có badge)
     if (currentUser == null || currentUser.isAnonymous) {
       return GestureDetector(
+        // Tap để mở màn hình thông báo
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute(
@@ -366,12 +405,13 @@ class _HomeTabState extends State<HomeTab> {
           height: 44,
           width: 44,
           decoration: BoxDecoration(
+            // Background trắng trong suốt 15%
             color: Colors.white.withOpacity(0.15),
             borderRadius: BorderRadius.circular(12),
           ),
           child: const Center(
             child: Icon(
-              Icons.notifications_none,
+              Icons.notifications_none,     // Icon chuông outline
               color: Colors.white,
             ),
           ),
@@ -379,17 +419,32 @@ class _HomeTabState extends State<HomeTab> {
       );
     }
     
-    // StreamBuilder để lắng nghe số thông báo chưa đọc
+    // ========================================================================
+    // BƯỚC 3: XỬ LÝ TRƯỜNG HỢP ĐÃ ĐĂNG NHẬP - SỬ DỤNG STREAMBUILDER
+    // ========================================================================
+    // StreamBuilder lắng nghe Firebase Firestore realtime
+    // Tự động rebuild widget khi data thay đổi
     return StreamBuilder<QuerySnapshot>(
+      // ------------------------------------------------------------------------
+      // STREAM: Lắng nghe collection 'user_notifications'
+      // ------------------------------------------------------------------------
       stream: FirebaseFirestore.instance
-          .collection('user_notifications')
-          .where('userId', isEqualTo: currentUser.uid)
-          .where('read', isEqualTo: false)
-          .snapshots(),
+          .collection('user_notifications')         // Collection chứa thông báo
+          .where('userId', isEqualTo: currentUser.uid)  // Chỉ lấy thông báo của user này
+          .where('read', isEqualTo: false)          // Chỉ lấy thông báo chưa đọc
+          .snapshots(),                             // Lắng nghe realtime (không phải get 1 lần)
+      
+      // ------------------------------------------------------------------------
+      // BUILDER: Xây dựng UI dựa trên snapshot data
+      // ------------------------------------------------------------------------
       builder: (context, snapshot) {
+        // Đếm số thông báo chưa đọc
+        // snapshot.data?.docs.length: Số documents trong query result
+        // ?? 0: Nếu null (đang loading hoặc lỗi) thì mặc định = 0
         final unreadCount = snapshot.data?.docs.length ?? 0;
         
         return GestureDetector(
+          // Tap để navigate đến NotificationsScreen
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(
@@ -404,31 +459,40 @@ class _HomeTabState extends State<HomeTab> {
               color: Colors.white.withOpacity(0.15),
               borderRadius: BorderRadius.circular(12),
             ),
+            // Stack để đặt badge lên trên icon
             child: Stack(
               children: [
+                // Icon notification ở giữa
                 const Center(
                   child: Icon(
                     Icons.notifications_none,
                     color: Colors.white,
                   ),
                 ),
-                // Badge hiển thị số thông báo
+                
+                // ------------------------------------------------------------------
+                // BADGE: Chỉ hiển thị khi có thông báo chưa đọc (unreadCount > 0)
+                // ------------------------------------------------------------------
                 if (unreadCount > 0)
                   Positioned(
-                    top: 6,
-                    right: 6,
+                    top: 6,       // Cách top 6px
+                    right: 6,     // Cách right 6px (góc trên bên phải)
                     child: Container(
-                      padding: const EdgeInsets.all(4),
+                      padding: const EdgeInsets.all(4),     // Padding bên trong badge
                       decoration: const BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
+                        color: Colors.red,                  // Màu đỏ nổi bật
+                        shape: BoxShape.circle,             // Hình tròn
                       ),
+                      // constraints để badge có kích thước tối thiểu
                       constraints: const BoxConstraints(
-                        minWidth: 18,
-                        minHeight: 18,
+                        minWidth: 18,                       // Rộng tối thiểu 18px
+                        minHeight: 18,                      // Cao tối thiểu 18px
                       ),
                       child: Center(
                         child: Text(
+                          // Logic hiển thị số:
+                          // - Nếu > 9: Hiển thị "9+"
+                          // - Nếu <= 9: Hiển thị số chính xác
                           unreadCount > 9 ? '9+' : unreadCount.toString(),
                           style: const TextStyle(
                             color: Colors.white,
