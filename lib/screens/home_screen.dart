@@ -222,6 +222,7 @@ class _HomeTabState extends State<HomeTab> {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
+      top: false, // Cho phép background xanh kéo lên status bar
       bottom: false,
       child: Stack(
         children: [
@@ -231,7 +232,7 @@ class _HomeTabState extends State<HomeTab> {
               children: [
                 // KHOẢNG TRỐNG BẰNG CHIỀU CAO HEADER
                 Container(
-                  height: 130, // Chiều cao header
+                  height: 130 + MediaQuery.of(context).padding.top, // Chiều cao header + status bar
                   color: const Color(0xFF5B8DEF),
                 ),
                 
@@ -285,8 +286,11 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   Widget _buildHeader(BuildContext context) {
+  // Lấy chiều cao status bar
+  final statusBarHeight = MediaQuery.of(context).padding.top;
+  
   return Container(
-    padding: const EdgeInsets.fromLTRB(16, 16, 16, 34),
+    padding: EdgeInsets.fromLTRB(16, statusBarHeight + 16, 16, 34),
     decoration: const BoxDecoration(
       color: Color(0xFF5B8DEF),
       borderRadius: BorderRadius.vertical(
