@@ -11,10 +11,16 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 // Import AuthService để quản lý xác thực
 import 'services/auth_service.dart';
+// Import FirestoreService
+import 'services/firestore_service.dart'; // Thêm dòng này
 // Import màn hình đăng nhập
 import 'screens/login_screen.dart';
 // Import Firebase Auth để lắng nghe trạng thái đăng nhập
 import 'package:firebase_auth/firebase_auth.dart';
+// Import Provider để quản lý state
+import 'package:provider/provider.dart'; // Thêm dòng này
+// Import Firebase Messaging và Local Notifications
+import 'services/notification_service.dart';
 
 /// Hàm main - điểm khởi đầu của ứng dụng
 ///
@@ -30,6 +36,10 @@ void main() async {
   // Khởi tạo Firebase với cấu hình từ firebase_options.dart
   // File này được tạo tự động bởi FlutterFire CLI
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Khởi tạo Notification Service
+  final notificationService = NotificationService();
+  await notificationService.initialize();
 
   // Cấu hình EasyLoading với theme xanh dương
   configEasyLoading();
@@ -81,17 +91,29 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      // Tên ứng dụng
-      title: AppStrings.appName,
-      // Theme sáng (light theme)
-      theme: AppTheme.lightTheme,
-      // Tắt banner "Debug" ở góc trên bên phải
-      debugShowCheckedModeBanner: false,
-      // Màn hình home là AuthGate - widget kiểm tra trạng thái đăng nhập
-      home: const AuthGate(),
-      // Thêm EasyLoading builder để EasyLoading hoạt động globally trong toàn bộ app
-      builder: EasyLoading.init(),
+    return MultiProvider( // Thay MaterialApp bằng MultiProvider
+      providers: [
+        // Cung cấp AuthService
+        Provider<AuthService>(
+          create: (_) => AuthService(),
+        ),
+        // Cung cấp FirestoreService
+        Provider<FirestoreService>(
+          create: (_) => FirestoreService(),
+        ),
+      ],
+      child: MaterialApp(
+        // Tên ứng dụng
+        title: AppStrings.appName,
+        // Theme sáng (light theme)
+        theme: AppTheme.lightTheme,
+        // Tắt banner "Debug" ở góc trên bên phải
+        debugShowCheckedModeBanner: false,
+        // Màn hình home là AuthGate - widget kiểm tra trạng thái đăng nhập
+        home: const AuthGate(),
+        // Thêm EasyLoading builder để EasyLoading hoạt động globally trong toàn bộ app
+        builder: EasyLoading.init(),
+      ),
     );
   }
 }
@@ -109,12 +131,14 @@ class AuthGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Sử dụng Provider để lấy AuthService
+    final authService = Provider.of<AuthService>(context, listen: false);
+    
     // StreamBuilder lắng nghe stream authStateChanges từ AuthService
     // Stream này sẽ emit giá trị mới mỗi khi trạng thái đăng nhập thay đổi
     return StreamBuilder<User?>(
-      // Stream theo dõi trạng thái đăng nhập
-      stream: AuthService().authStateChanges,
-
+      // Stream theo dõi trạng thái đăng nhập từ AuthService
+      stream: authService.authStateChanges,
       // Builder function được gọi mỗi khi stream emit giá trị mới
       builder: (context, snapshot) {
         // Kiểm tra xem stream có đang chờ dữ liệu không

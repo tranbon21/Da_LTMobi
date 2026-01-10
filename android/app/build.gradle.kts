@@ -8,6 +8,8 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+apply(plugin = "dev.flutter.flutter-gradle-plugin")
+
 android {
     namespace = "com.example.da_booking_hotel"
     compileSdk = flutter.compileSdkVersion
@@ -44,4 +46,8 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.23")  // Cập nhật version
 }

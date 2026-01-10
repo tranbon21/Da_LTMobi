@@ -17,6 +17,8 @@ import 'help_screen.dart';
 import 'about_screen.dart';
 import 'create_hotel_post_screen.dart';
 import 'create_tour_post_screen.dart';
+import 'my_promotions_screen.dart';
+
 
 /// Màn hình Tài khoản (Profile Screen)
 ///
@@ -416,6 +418,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         );
                       },
                     ),
+
+                  // ==================== ƯU ĐÃI CỦA TÔI ====================
+
+                  if (!isGuest)
+                    _ProfileOption(
+                      icon: Icons.local_offer_outlined,
+                      title: 'Ưu đãi của tôi',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const MyPromotionsScreen(),
+                          ),
+                        );
+                      },
+                    ), 
 
                   // Trợ giúp
                   _ProfileOption(
