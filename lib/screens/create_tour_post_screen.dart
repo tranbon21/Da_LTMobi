@@ -51,10 +51,25 @@ class _CreateTourPostScreenState extends State<CreateTourPostScreen> {
   /// Controller cho TextField đánh giá (rating)
   final _ratingController = TextEditingController();
 
+  /// Controller cho TextField hướng dẫn viên
+  final _tourGuideController = TextEditingController();
+
+  /// Controller cho TextField highlight mới
+  final _highlightController = TextEditingController();
+
+  /// Controller cho TextField image URL mới
+  final _imageUrlController = TextEditingController();
+
   // ==================== STATE ====================
 
   /// Biến theo dõi trạng thái loading
   bool _isLoading = false;
+
+  /// Danh sách highlights đã thêm
+  final List<String> _highlights = [];
+
+  /// Danh sách image URLs đã thêm
+  final List<String> _imageUrls = [];
 
   // ==================== LIFECYCLE ====================
 
@@ -68,6 +83,9 @@ class _CreateTourPostScreenState extends State<CreateTourPostScreen> {
     _priceController.dispose();
     _slotsController.dispose();
     _ratingController.dispose();
+    _tourGuideController.dispose();
+    _highlightController.dispose();
+    _imageUrlController.dispose();
     super.dispose();
   }
 
@@ -109,8 +127,8 @@ class _CreateTourPostScreenState extends State<CreateTourPostScreen> {
         price: double.parse(_priceController.text.trim()),
         rating: double.parse(_ratingController.text.trim()),
         reviewCount: 0, // Mặc định 0 review khi mới tạo
-        imageUrls: [], // TODO: Thêm tính năng upload ảnh sau
-        highlights: [], // TODO: Thêm UI để nhập highlights
+        imageUrls: _imageUrls, // Lấy từ state
+        highlights: _highlights, // Lấy từ state
         startDate: DateTime.now(), // TODO: Thêm DatePicker để chọn ngày bắt đầu
         endDate: DateTime.now().add(
           Duration(days: int.parse(_durationController.text.trim())),
@@ -119,7 +137,7 @@ class _CreateTourPostScreenState extends State<CreateTourPostScreen> {
           _slotsController.text.trim(),
         ), // Số chỗ tối đa
         currentParticipants: 0, // Mặc định 0 người đã đăng ký
-        tourGuide: '', // TODO: Thêm field để nhập tên hướng dẫn viên
+        tourGuide: _tourGuideController.text.trim(), // Lấy từ controller
       );
 
       // Lưu tour vào Firestore
@@ -303,6 +321,162 @@ class _CreateTourPostScreenState extends State<CreateTourPostScreen> {
                 },
                 enabled: !_isLoading,
               ),
+
+              const SizedBox(height: AppSizes.paddingM),
+
+              // Hướng dẫn viên
+              TextFormField(
+                controller: _tourGuideController,
+                decoration: const InputDecoration(
+                  labelText: 'Hướng dẫn viên',
+                  hintText: 'VD: Nguyễn Văn A',
+                  prefixIcon: Icon(Icons.person),
+                  border: OutlineInputBorder(),
+                ),
+                enabled: !_isLoading,
+              ),
+
+              const SizedBox(height: AppSizes.paddingM),
+
+              // ==================== HIGHLIGHTS ====================
+              
+              // Tiêu đề Highlights
+              const Text(
+                'Điểm nổi bật',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: AppSizes.paddingS),
+
+              // Input để thêm highlight mới
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _highlightController,
+                      decoration: const InputDecoration(
+                        hintText: 'VD: Tham quan vịnh Hạ Long',
+                        border: OutlineInputBorder(),
+                      ),
+                      enabled: !_isLoading,
+                    ),
+                  ),
+                  const SizedBox(width: AppSizes.paddingS),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle, color: Colors.purple),
+                    onPressed: _isLoading
+                        ? null
+                        : () {
+                            if (_highlightController.text.trim().isNotEmpty) {
+                              setState(() {
+                                _highlights.add(_highlightController.text.trim());
+                                _highlightController.clear();
+                              });
+                            }
+                          },
+                  ),
+                ],
+              ),
+
+              // Danh sách highlights đã thêm
+              if (_highlights.isNotEmpty) ...[
+                const SizedBox(height: AppSizes.paddingS),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _highlights.map((highlight) {
+                    return Chip(
+                      label: Text(highlight),
+                      deleteIcon: const Icon(Icons.close, size: 18),
+                      onDeleted: _isLoading
+                          ? null
+                          : () {
+                              setState(() {
+                                _highlights.remove(highlight);
+                              });
+                            },
+                    );
+                  }).toList(),
+                ),
+              ],
+
+              const SizedBox(height: AppSizes.paddingM),
+
+              // ==================== IMAGE URLS ====================
+              
+              // Tiêu đề Image URLs
+              const Text(
+                'Hình ảnh (URLs)',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: AppSizes.paddingS),
+
+              // Input để thêm image URL mới
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _imageUrlController,
+                      decoration: const InputDecoration(
+                        hintText: 'VD: https://example.com/image.jpg',
+                        border: OutlineInputBorder(),
+                      ),
+                      enabled: !_isLoading,
+                    ),
+                  ),
+                  const SizedBox(width: AppSizes.paddingS),
+                  IconButton(
+                    icon: const Icon(Icons.add_photo_alternate, color: Colors.purple),
+                    onPressed: _isLoading
+                        ? null
+                        : () {
+                            if (_imageUrlController.text.trim().isNotEmpty) {
+                              setState(() {
+                                _imageUrls.add(_imageUrlController.text.trim());
+                                _imageUrlController.clear();
+                              });
+                            }
+                          },
+                  ),
+                ],
+              ),
+
+              // Danh sách image URLs đã thêm
+              if (_imageUrls.isNotEmpty) ...[
+                const SizedBox(height: AppSizes.paddingS),
+                ...List.generate(_imageUrls.length, (index) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${index + 1}. ${_imageUrls[index]}',
+                            style: const TextStyle(fontSize: 12),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                          onPressed: _isLoading
+                              ? null
+                              : () {
+                                  setState(() {
+                                    _imageUrls.removeAt(index);
+                                  });
+                                },
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
 
               const SizedBox(height: AppSizes.paddingXL),
 

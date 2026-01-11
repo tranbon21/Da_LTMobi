@@ -295,19 +295,138 @@ class FirestoreService {
   /// Chỉ lấy các promotions đang active (isActive = true)
   ///
   /// Sử dụng trong HomeScreen để hiển thị ưu đãi
-  Stream<List<Promotion>> getPromotions() {
+  // Stream<List<Promotion>> getPromotions() {
+  //   return _db
+  //       .collection('promotions')
+  //       // Chỉ lấy promotions đang active
+  //       .where('isActive', isEqualTo: true)
+  //       // Lắng nghe realtime updates
+  //       .snapshots()
+  //       // Map snapshot thành List<Promotion>
+  //       .map((snapshot) {
+  //         return snapshot.docs.map((doc) {
+  //           // Convert mỗi document thành Promotion object
+  //           return Promotion.fromMap(doc.data(), doc.id);
+  //         }).toList();
+  //       });
+  // }
+
+    // ==================== USER PROMOTION OPERATIONS ====================
+
+  /// Lưu khuyến mại cho người dùng (user claim promotion)
+  ///
+  /// Tham số:
+  /// - userId: ID của user claim promotion
+  /// - promotion: Promotion object được claim
+  /// - type: Loại promotion (hotel_promotion, welcome_package, etc.)
+  Future<void> saveUserPromotion({
+    required String userId,
+    required Promotion promotion,
+    String type = 'hotel_promotion',
+  }) async {
+    try {
+      // Kiểm tra xem user đã claim promotion này chưa
+      final existingPromotion = await _db
+          .collection('user_promotions')
+          .where('userId', isEqualTo: userId)
+          .where('promotionId', isEqualTo: promotion.id)
+          .get();
+
+      if (existingPromotion.docs.isNotEmpty) {
+        throw Exception('Bạn đã nhận khuyến mại này rồi');
+      }
+
+      // Tạo user_promotion document
+      await _db.collection('user_promotions').add({
+        'userId': userId,
+        'promotionId': promotion.id,
+        'hotelId': promotion.hotelId,
+        'type': type,
+        'discountPercentage': promotion.discountPercentage,
+        'endDate': Timestamp.fromDate(promotion.endDate),
+        'isUsed': false,
+        'claimedAt': FieldValue.serverTimestamp(),
+      });
+
+      print('✅ User promotion saved for user $userId');
+    } catch (e) {
+      print('❌ Error saving user promotion: $e');
+      rethrow;
+    }
+  }
+
+  /// Lấy danh sách promotions của user
+  ///
+  /// Tham số:
+  /// - userId: ID của user
+  Stream<List<Map<String, dynamic>>> getUserPromotions(String userId) {
+    return _db
+        .collection('user_promotions')
+        .where('userId', isEqualTo: userId)
+        .orderBy('claimedAt', descending: true)
+        .snapshots()
+        .asyncMap((snapshot) async {
+      List<Map<String, dynamic>> result = [];
+
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        
+        // Lấy thông tin promotion chi tiết
+        Promotion? promotion;
+        try {
+          final promotionDoc = await _db
+              .collection('promotions')
+              .doc(data['promotionId'] as String)
+              .get();
+          
+          if (promotionDoc.exists) {
+            promotion = Promotion.fromFirestore(promotionDoc);
+          }
+        } catch (e) {
+          print('Error getting promotion detail: $e');
+        }
+
+        result.add({
+          'id': doc.id,
+          ...data,
+          'promotion': promotion,
+          'isValid': promotion?.isValid ?? false,
+        });
+      }
+
+      return result;
+    });
+  }
+
+  /// Kiểm tra xem user đã claim welcome package chưa
+  ///
+  /// Tham số:
+  /// - userId: ID của user
+  Future<bool> hasUserClaimedWelcomePackage(String userId) async {
+    try {
+      final snapshot = await _db
+          .collection('user_promotions')
+          .where('userId', isEqualTo: userId)
+          .where('type', isEqualTo: 'welcome_package')
+          .get();
+
+      return snapshot.docs.isNotEmpty;
+    } catch (e) {
+      print('❌ Error checking welcome package: $e');
+      return false;
+    }
+  }
+
+  /// Lấy tất cả promotions từ hệ thống
+  Stream<List<Promotion>> getAllPromotions() {
     return _db
         .collection('promotions')
-        // Chỉ lấy promotions đang active
         .where('isActive', isEqualTo: true)
-        // Lắng nghe realtime updates
         .snapshots()
-        // Map snapshot thành List<Promotion>
         .map((snapshot) {
-          return snapshot.docs.map((doc) {
-            // Convert mỗi document thành Promotion object
-            return Promotion.fromMap(doc.data(), doc.id);
-          }).toList();
-        });
+      return snapshot.docs.map((doc) {
+        return Promotion.fromFirestore(doc);
+      }).toList();
+    });
   }
 }
